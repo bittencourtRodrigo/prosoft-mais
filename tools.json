@@ -1,0 +1,16 @@
+[
+  {
+    "file": "conferir livro.html",
+    "titulo": "Conferir Livro",
+    "desc": "Anotação automática no livro",
+    "icone": "📒",
+    "categoria": ""
+  },
+  {
+    "file": "fechar fornecedor.html",
+    "titulo": "Fechar Fornecedor",
+    "desc": "Fechamento de contas por fornecedor",
+    "icone": "🚛",
+    "categoria": ""
+  }
+]

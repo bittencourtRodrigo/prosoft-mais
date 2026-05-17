@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>prosoftMais · Ferramentas</title>
+<link rel="icon" type="image/svg+xml" href="prosoftmais.svg">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#F7F8FA;--surface:#FFFFFF;--border:#D8DEE7;--muted:#8A99AE;
+  --text:#1A2436;--sub:#5C7191;--accent:#1E3A5F;--accent-h:#15293F;
+  --accent-bg:#EEF2F8;--accent-bd:#CBD7E8;--danger:#C0392B;
+  --radius:6px;--font:'Sora',sans-serif;--mono:'JetBrains Mono',monospace;--trans:140ms ease;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);font-family:var(--font);color:var(--text);font-size:14px;line-height:1.6;min-height:100vh;}
+
+.page{max-width:860px;margin:0 auto;padding:40px 24px 80px;}
+
+.brand{margin-bottom:40px;}
+.brand-logo{display:block;width:240px;height:60px;}
+
+.section-label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:16px;}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;}
+
+.tool-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:24px;
+  cursor:pointer;
+  text-decoration:none;
+  color:inherit;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  transition:border-color var(--trans),box-shadow var(--trans),transform var(--trans);
+  position:relative;
+  overflow:hidden;
+}
+.tool-card:hover{
+  border-color:var(--accent);
+  box-shadow:0 4px 16px rgba(30,58,95,.08);
+  transform:translateY(-2px);
+}
+.tool-card::after{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:2px;
+  background:var(--accent);
+  transform:scaleX(0);
+  transform-origin:left;
+  transition:transform var(--trans);
+}
+.tool-card:hover::after{transform:scaleX(1);}
+
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.card-icon{font-size:24px;line-height:1;}
+.card-cat{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:3px 8px;border:1px solid var(--border);border-radius:99px;}
+
+.card-title{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--text);}
+.card-desc{font-size:12px;color:var(--sub);line-height:1.5;}
+
+.card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:4px;}
+.card-link{font-size:12px;font-weight:500;color:var(--accent);display:flex;align-items:center;gap:5px;transition:gap var(--trans);}
+.tool-card:hover .card-link{gap:8px;}
+
+.empty{
+  text-align:center;
+  padding:60px 24px;
+  color:var(--muted);
+  font-size:13px;
+  border:1px dashed var(--border);
+  border-radius:12px;
+}
+.empty-icon{font-size:32px;margin-bottom:12px;opacity:.5;}
+
+.loading{
+  display:flex;align-items:center;justify-content:center;
+  padding:60px;
+  color:var(--muted);
+  font-size:13px;
+  gap:10px;
+}
+.spinner{
+  width:16px;height:16px;
+  border:2px solid var(--border);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.toast{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:var(--radius);border-left:3px solid;background:var(--surface);border-top:1px solid var(--border);border-right:1px solid var(--border);border-bottom:1px solid var(--border);}
+.toast-icon{font-size:16px;line-height:1.4;flex-shrink:0;}
+.toast-title{font-size:13px;font-weight:600;margin-bottom:2px;}
+.toast-msg{font-size:12px;color:var(--sub);}
+.toast-error{border-left-color:var(--danger);}
+.toast-error .toast-title{color:var(--danger);}
+
+.categories{display:flex;flex-direction:column;gap:32px;}
+.category-block{}
+
+@media(max-width:600px){
+  header{padding:12px 16px;}
+  .page{padding:24px 16px 60px;}
+  .hero-title{font-size:20px;}
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="brand">
+    <object class="brand-logo" type="image/svg+xml" data="prosoftmais.svg" aria-label="prosoftMais"></object>
+  </div>
+
+  <div class="section-label" style="margin-bottom:24px;">Selecione uma solução</div>
+
+  <div id="content">
+    <div class="loading">
+      <div class="spinner"></div>
+      Carregando ferramentas...
+    </div>
+  </div>
+</div>
+
+<script>
+async function loadTools() {
+  const content = document.getElementById('content');
+  try {
+    const res = await fetch('tools.json');
+    if (!res.ok) throw new Error('Não foi possível carregar tools.json');
+    const tools = await res.json();
+
+    if (!tools.length) {
+      content.innerHTML = `<div class="empty">
+        <div class="empty-icon">🔧</div>
+        Nenhuma ferramenta cadastrada ainda.
+      </div>`;
+      return;
+    }
+
+    // Agrupar por categoria
+    const cats = {};
+    for (const t of tools) {
+      const c = t.categoria || '';
+      if (!cats[c]) cats[c] = [];
+      cats[c].push(t);
+    }
+
+    let html = `<div class="categories">`;
+    for (const [cat, items] of Object.entries(cats)) {
+      const showCat = cat !== '';
+      html += `<div class="category-block">
+        ${showCat ? `<div class="section-label">${cat}</div>` : ''}
+        <div class="grid">`;
+      for (const t of items) {
+        const href = encodeURI(t.file);
+        html += `
+        <a class="tool-card" href="${href}">
+          <div class="card-top">
+            <div class="card-icon">${t.icone || '🔧'}</div>
+
+          </div>
+          <div>
+            <div class="card-title">${t.titulo}</div>
+            <div class="card-desc">${t.desc}</div>
+          </div>
+
+        </a>`;
+      }
+      html += `</div></div>`;
+    }
+    html += `</div>`;
+    content.innerHTML = html;
+
+  } catch (err) {
+    content.innerHTML = `<div class="toast toast-error">
+      <div class="toast-icon">✕</div>
+      <div class="toast-body">
+        <div class="toast-title">Erro ao carregar ferramentas</div>
+        <div class="toast-msg">${err.message}</div>
+      </div>
+    </div>`;
+  }
+}
+
+loadTools();
+</script>
+</body>
+</html>

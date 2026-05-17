@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fechar Fornecedor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚛</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #F7F8FA;
+  --surface:  #FFFFFF;
+  --border:   #D8DEE7;
+  --muted:    #8A99AE;
+  --text:     #1A2436;
+  --sub:      #5C7191;
+  --accent:   #1E3A5F;
+  --accent-h: #15293F;
+  --danger:   #C0392B;
+  --radius:   6px;
+  --font:     'Sora', sans-serif;
+  --mono:     'JetBrains Mono', monospace;
+  --trans:    140ms ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.htitle { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+
+main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 48px 24px 96px;
+}
+
+.section-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+/* Upload cards */
+.upload-row {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.ucard {
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 28px 20px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color var(--trans), background var(--trans);
+  text-align: center;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+.ucard:hover  { border-color: var(--muted); }
+.ucard.over   { border-color: var(--accent); background: #EEF2F8; }
+.ucard.loaded { border-color: var(--accent); border-style: solid; background: #EEF2F8; }
+.ucard.error  { border-color: var(--danger); border-style: solid; background: #FDF3F2; }
+
+.uicon  { font-size: 22px; line-height: 1; }
+.ulabel { font-size: 14px; font-weight: 500; color: var(--text); }
+.uhint  { font-size: 12px; color: var(--muted); }
+.uname  { font-size: 11px; color: var(--accent); font-family: var(--mono); margin-top: 2px; min-height: 16px; }
+.uname.err { color: var(--danger); }
+
+.uclear {
+  position: absolute; top: 10px; right: 12px;
+  background: none; border: none;
+  color: var(--muted); cursor: pointer;
+  font-size: 14px; padding: 2px 6px;
+  border-radius: var(--radius);
+  transition: color var(--trans);
+  display: none;
+}
+.ucard.loaded .uclear,
+.ucard.error  .uclear { display: block; }
+.uclear:hover { color: var(--danger); }
+
+/* Buttons */
+.btn {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius);
+  padding: 10px 18px;
+  border: none;
+  cursor: pointer;
+  transition: background var(--trans), transform var(--trans);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; transform: none; }
+.btn-full { width: 100%; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: var(--accent-h); }
+.btn-ghost { background: transparent; color: var(--sub); border: 1px solid var(--border); }
+.btn-ghost:hover:not(:disabled) { background: var(--bg); color: var(--text); }
+
+/* Processing */
+#processing { display: none; text-align: center; padding: 64px 0; }
+.spinner {
+  width: 28px; height: 28px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#processing p { font-size: 13px; color: var(--sub); font-family: var(--mono); }
+
+/* Toasts */
+.toast {
+  display: none;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border-left: 3px solid;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+.toast.visible { display: flex; }
+.toast-icon  { font-size: 15px; line-height: 1.5; flex-shrink: 0; }
+.toast-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.toast-msg   { font-size: 12px; color: var(--sub); }
+.toast-warn  { border-left-color: #D4AC0D; }
+.toast-warn  .toast-title { color: #856404; }
+.toast-error { border-left-color: var(--danger); }
+.toast-error .toast-title { color: var(--danger); }
+
+/* Resultado */
+#resultado { display: none; }
+
+.result-header {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 28px;
+  margin-bottom: 12px;
+}
+.result-empresa { font-size: 18px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 6px; }
+.result-meta { display: flex; gap: 24px; flex-wrap: wrap; }
+.result-meta span { font-family: var(--mono); font-size: 12px; color: var(--sub); }
+.result-meta strong { color: var(--text); font-weight: 500; }
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+.stat-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.stat-value { font-family: var(--mono); font-size: 28px; font-weight: 600; letter-spacing: -.02em; }
+.stat-value.danger  { color: var(--danger); }
+.stat-value.neutral { color: var(--accent); }
+
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.table-header h2 { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  background: var(--bg);
+  padding: 11px 16px;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  font-weight: 400;
+  border-bottom: 1px solid var(--border);
+}
+thead th.right { text-align: right; }
+tbody tr { border-bottom: 1px solid var(--border); transition: background var(--trans); }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--bg); }
+tbody td { padding: 13px 16px; vertical-align: middle; }
+
+.td-code  { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.td-name  { font-weight: 500; }
+.td-value { font-family: var(--mono); font-size: 13px; text-align: right; color: var(--sub); }
+.td-diff  { font-family: var(--mono); font-size: 13px; text-align: right; font-weight: 600; color: var(--danger); }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 500;
+  padding: 3px 9px; border-radius: 99px; letter-spacing: .03em;
+}
+.badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+.badge-red    { background: #FDF3F2; color: #9B2335; }
+.badge-red::before    { background: var(--danger); }
+.badge-yellow { background: #FEF9E7; color: #856404; }
+.badge-yellow::before { background: #D4AC0D; }
+.badge-blue   { background: #EEF4FD; color: #2C5F9A; }
+.badge-blue::before   { background: #3A78C9; }
+
+.all-ok { text-align: center; padding: 64px 24px; }
+.ok-icon { font-size: 36px; margin-bottom: 16px; }
+.all-ok h3 { font-size: 16px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
+.all-ok p  { font-size: 13px; color: var(--sub); }
+
+@media (max-width: 680px) {
+  .stats-row { grid-template-columns: 1fr; }
+  header { padding: 14px 20px; }
+  main   { padding: 32px 16px 64px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="htitle">Fechar Fornecedor</div>
+</header>
+
+<main>
+
+  <div class="section-label">Relatórios</div>
+
+  <!-- inputs fora dos cards para evitar conflito de eventos -->
+  <input type="file" accept=".pdf" id="file-bal" style="display:none">
+  <input type="file" accept=".pdf" id="file-cc"  style="display:none">
+
+  <div class="upload-row" style="grid-template-columns: repeat(2, 1fr)">
+
+    <div class="ucard" id="card-bal">
+      <div class="uicon">📊</div>
+      <div class="ulabel">Balancete Contábil</div>
+      <div class="uhint">PDF · módulo contábil · arraste ou clique</div>
+      <div class="uname" id="uname-bal"></div>
+      <button class="uclear" id="uclear-bal" title="Remover">✕</button>
+    </div>
+
+    <div class="ucard" id="card-cc">
+      <div class="uicon">📄</div>
+      <div class="ulabel">Conta Corrente Fornecedores</div>
+      <div class="uhint">PDF · módulo fiscal · arraste ou clique</div>
+      <div class="uname" id="uname-cc"></div>
+      <button class="uclear" id="uclear-cc" title="Remover">✕</button>
+    </div>
+
+  </div>
+
+  <button class="btn btn-primary btn-full" id="btnComparar" disabled>Comparar</button>
+
+  <div id="processing" style="margin-top:48px">
+    <div class="spinner"></div>
+    <p id="proc-msg">Processando...</p>
+  </div>
+
+  <div id="resultado" style="margin-top:48px">
+
+    <div class="toast toast-warn" id="alertPeriodo">
+      <div class="toast-icon">⚠</div>
+      <div>
+        <div class="toast-title">Período fora do esperado</div>
+        <div class="toast-msg" id="alertPeriodoMsg"></div>
+      </div>
+    </div>
+
+    <div class="result-header">
+      <div class="result-empresa" id="res-empresa">—</div>
+      <div class="result-meta">
+        <span>CNPJ: <strong id="res-cnpj">—</strong></span>
+        <span>Gerado em: <strong id="res-data">—</strong></span>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Divergências</div>
+        <div class="stat-value danger" id="stat-div">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Só no Balancete</div>
+        <div class="stat-value neutral" id="stat-bal">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Só na C/C</div>
+        <div class="stat-value neutral" id="stat-cc">0</div>
+      </div>
+    </div>
+
+    <div class="table-header">
+      <h2>Fornecedores com Divergência</h2>
+      <button class="btn btn-ghost" id="btnImprimir">🖨 Imprimir</button>
+    </div>
+
+    <div class="table-wrap" id="tableWrap"></div>
+
+  </div>
+
+
+</main>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+const { jsPDF } = window.jspdf;
+
+let parsedData = { bal: null, cc: null };
+let resultData = null;
+
+// ─── SETUP DE EVENTOS (após DOM carregado) ────────────────────────
+window.addEventListener('DOMContentLoaded', function () {
+
+  ['bal', 'cc'].forEach(function(key) {
+    var card   = document.getElementById('card-' + key);
+    var input  = document.getElementById('file-' + key);
+    var uclear = document.getElementById('uclear-' + key);
+
+    // Clique no card abre o file picker
+    card.addEventListener('click', function() {
+      input.click();
+    });
+
+    // Botão remover — não propaga para o card
+    uclear.addEventListener('click', function(e) {
+      e.stopPropagation();
+      clearFile(key);
+    });
+
+    // Seleção via file picker
+    input.addEventListener('change', function() {
+      if (input.files && input.files[0]) {
+        handleFile(key, input.files[0]);
+      }
+    });
+
+    // Drag & drop
+    card.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      card.classList.add('over');
+    });
+    card.addEventListener('dragleave', function() {
+      card.classList.remove('over');
+    });
+    card.addEventListener('drop', function(e) {
+      e.preventDefault();
+      card.classList.remove('over');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFile(key, e.dataTransfer.files[0]);
+      }
+    });
+  });
+
+  document.getElementById('btnComparar').addEventListener('click', comparar);
+  document.getElementById('btnImprimir').addEventListener('click', imprimirRelatorio);
+});
+
+// ─── CLEAR ────────────────────────────────────────────────────────
+function clearFile(key) {
+  parsedData[key] = null;
+  document.getElementById('file-' + key).value = '';
+  var card  = document.getElementById('card-' + key);
+  var uname = document.getElementById('uname-' + key);
+  card.classList.remove('loaded', 'error');
+  uname.textContent = '';
+  uname.className = 'uname';
+  checkReady();
+}
+
+// ─── HANDLE FILE ──────────────────────────────────────────────────
+async function handleFile(key, file) {
+  if (!file.name.toLowerCase().endsWith('.pdf')) return;
+
+  var card  = document.getElementById('card-' + key);
+  var uname = document.getElementById('uname-' + key);
+
+  card.classList.remove('loaded', 'error');
+  uname.className = 'uname';
+  uname.textContent = 'Lendo...';
+
+  try {
+    var text       = await extractText(file);
+    var validation = validateFile(key, text);
+
+    if (!validation.ok) {
+      card.classList.add('error');
+      uname.className = 'uname err';
+      uname.textContent = validation.msg;
+      parsedData[key] = null;
+    } else {
+      var parsed = (key === 'bal') ? parseBalancete(text) : parseContaCorrente(text);
+      parsedData[key] = { text: text, parsed: parsed };
+      var count = Object.keys(parsed.fornecedores).length;
+      card.classList.add('loaded');
+      uname.textContent = file.name + '  ·  ' + count + ' fornecedores';
+    }
+  } catch(e) {
+    card.classList.add('error');
+    uname.className = 'uname err';
+    uname.textContent = 'Erro ao ler o arquivo';
+    parsedData[key] = null;
+  }
+
+  checkReady();
+}
+
+// ─── VALIDATE ─────────────────────────────────────────────────────
+function validateFile(key, text) {
+  if (key === 'bal') {
+    if (!text.includes('2101010100') || !text.includes('FORNECEDORES'))
+      return { ok: false, msg: 'Este não parece ser o Balancete.' };
+    if (text.includes('SALDO C/C FORNECEDORES'))
+      return { ok: false, msg: 'Arquivo trocado — este é a Conta Corrente.' };
+  } else {
+    if (!text.includes('SALDO C/C FORNECEDORES') && !text.includes('CONTA CORRENTE FORNECEDORES'))
+      return { ok: false, msg: 'Este não parece ser a Conta Corrente.' };
+    if (text.includes('2101010100') && text.includes('Balancete'))
+      return { ok: false, msg: 'Arquivo trocado — este é o Balancete.' };
+  }
+  return { ok: true };
+}
+
+function checkReady() {
+  document.getElementById('btnComparar').disabled = !(parsedData.bal && parsedData.cc);
+}
+
+// ─── EXTRACT TEXT ─────────────────────────────────────────────────
+async function extractText(file) {
+  var buf  = await file.arrayBuffer();
+  var pdf  = await pdfjsLib.getDocument({ data: buf }).promise;
+  var text = '';
+  for (var i = 1; i <= pdf.numPages; i++) {
+    var page    = await pdf.getPage(i);
+    var content = await page.getTextContent();
+    var lastY   = null;
+    for (var j = 0; j < content.items.length; j++) {
+      var item = content.items[j];
+      if (lastY !== null && Math.abs(item.transform[5] - lastY) > 3) text += '\n';
+      text += item.str + ' ';
+      lastY = item.transform[5];
+    }
+    text += '\n\n';
+  }
+  return text;
+}
+
+// ─── PARSE BALANCETE ──────────────────────────────────────────────
+function parseBalancete(text) {
+  var result = { empresa: '', periodo: '', cnpj: '', codigo: '', fornecedores: {} };
+
+  var mEmp  = text.match(/([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ][^\n(]+?)\s*\((\d+)\)/);
+  if (mEmp)  { result.empresa = mEmp[1].trim(); result.codigo = mEmp[2].trim(); }
+  var mPer  = text.match(/Per[ií]odo:\s+(.+?)(?:\s{2,}|\n)/);
+  if (mPer)  result.periodo = mPer[1].trim();
+  var mCnpj = text.match(/CNPJ\/CPF:\s+([\d.\/\-]+)/);
+  if (mCnpj) result.cnpj = mCnpj[1].trim();
+
+  var linhas = text.split('\n');
+  var dentro = false;
+
+  for (var i = 0; i < linhas.length; i++) {
+    var linha = linhas[i];
+    if (linha.includes('2101010000') && linha.includes('FORNECEDORES')) dentro = true;
+    if (linha.includes('21100-4')    && linha.includes('2101010000'))   dentro = true;
+    if (dentro && linha.includes('TOTAL DA CONTA 2101010000')) { dentro = false; continue; }
+    if (!dentro) continue;
+    if (linha.includes('TOTAL DA CONTA') || linha.includes('TOTAL DO GRUPO')) continue;
+
+    // Linha normal: com código do fornecedor
+    var m = linha.match(/20100-2\s+([\d]+)\s+2101010100\s+(.+?)\s+[\d.,]+\s+[\d.,]+\s+[\d.,]+\s+([\d.,]+)\s*([CD])/);
+    if (m) {
+      var codigo = m[1].trim();
+      var nome   = m[2].trim();
+      var saldo  = parseBRL(m[3]) * (m[4] === 'C' ? 1 : -1);
+      if (!result.fornecedores[codigo])
+        result.fornecedores[codigo] = { codigo: codigo, nome: nome, saldo: 0 };
+      result.fornecedores[codigo].saldo += saldo;
+    }
+    // Linha sem código: ex. "FORNECEDORES DIVERSOS"
+    var mDiv = linha.match(/20100-2\s+2101010100\s+(.+?)\s+[\d.,]+\s+[\d.,]+\s+[\d.,]+\s+([\d.,]+)\s*([CD])/);
+    if (mDiv) {
+      var codigo = 'DIVERSOS';
+      var nome   = mDiv[1].trim();
+      var saldo  = parseBRL(mDiv[2]) * (mDiv[3] === 'C' ? 1 : -1);
+      if (!result.fornecedores[codigo])
+        result.fornecedores[codigo] = { codigo: codigo, nome: nome, saldo: 0 };
+      result.fornecedores[codigo].saldo += saldo;
+    }
+  }
+  return result;
+}
+
+// ─── PARSE CONTA CORRENTE ─────────────────────────────────────────
+function parseContaCorrente(text) {
+  var result = { empresa: '', codigo: '', fornecedores: {} };
+
+  var mEmp = text.match(/(\d{4})\s*-\s*(.+?)\s{2,}CNPJ:/);
+  if (mEmp) { result.empresa = mEmp[2].trim(); result.codigo = mEmp[1].trim(); }
+
+  var skip = ['TOTAL','Folha','CNPJ / CPF','CONTA CORRENTE','SALDO C/C'];
+  // CNPJ: 00.000.000/0000-00  |  CPF: 000.000.000-00
+  var reDoc = /^\s*([\d.,]+)\s+(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}|\d{3}\.\d{3}\.\d{3}-\d{2})\s+(.+?)\s+(\d{6})\s*$/;
+
+  var linhas = text.split('\n');
+  for (var i = 0; i < linhas.length; i++) {
+    var linha = linhas[i];
+    if (linha.trim() === '') continue;
+
+    var isSkip = false;
+    for (var s = 0; s < skip.length; s++) {
+      if (linha.includes(skip[s])) { isSkip = true; break; }
+    }
+    if (isSkip) continue;
+
+    var m = linha.match(reDoc);
+    if (m) {
+      var codigo = m[4].trim();
+      var nome   = m[3].trim();
+      var saldo  = parseBRL(m[1]);
+      if (!result.fornecedores[codigo])
+        result.fornecedores[codigo] = { codigo: codigo, nome: nome, saldo: 0 };
+      result.fornecedores[codigo].saldo += saldo;
+    }
+  }
+  return result;
+}
+
+// ─── COMPARAR ─────────────────────────────────────────────────────
+async function comparar() {
+  if (!parsedData.bal || !parsedData.cc) return;
+
+  var btn = document.getElementById('btnComparar');
+  btn.disabled = true;
+  document.getElementById('resultado').style.display = 'none';
+  document.getElementById('processing').style.display = 'block';
+  hideAlerts();
+
+  var bal = parsedData.bal.parsed;
+  var cc  = parsedData.cc.parsed;
+
+  // Alerta de período
+  if (bal.periodo) {
+    var meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    var hoje  = new Date();
+    var ant   = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+    if (!bal.periodo.toLowerCase().includes(meses[ant.getMonth()]) ||
+        !bal.periodo.includes(ant.getFullYear().toString())) {
+      showAlert('alertPeriodo', 'O Balancete é de "' + bal.periodo + '" — verifique se é o período correto.');
+    }
+  }
+
+  // Divergências
+  var allCodes   = new Set(Object.keys(bal.fornecedores).concat(Object.keys(cc.fornecedores)));
+  var divergencias = [];
+
+  allCodes.forEach(function(code) {
+    var b = bal.fornecedores[code];
+    var c = cc.fornecedores[code];
+    if (b && c) {
+      var diff = b.saldo - c.saldo;
+      if (Math.abs(diff) > 0.02)
+        divergencias.push({ tipo: 'diverge', codigo: code, nome: b.nome, saldoBal: b.saldo, saldoCC: c.saldo, diff: diff });
+    } else if (b && !c) {
+      if (Math.abs(b.saldo) > 0.02)
+        divergencias.push({ tipo: 'only-bal', codigo: code, nome: b.nome, saldoBal: b.saldo, saldoCC: null, diff: b.saldo });
+    } else if (!b && c) {
+      divergencias.push({ tipo: 'only-fis', codigo: code, nome: c.nome, saldoBal: null, saldoCC: c.saldo, diff: -c.saldo });
+    }
+  });
+
+  resultData = { bal: bal, cc: cc, divergencias: divergencias };
+  renderResult(resultData);
+  imprimirRelatorio();
+
+  document.getElementById('processing').style.display = 'none';
+  btn.disabled = false;
+}
+
+// ─── RENDER RESULT ────────────────────────────────────────────────
+function renderResult(data) {
+  var bal         = data.bal;
+  var cc          = data.cc;
+  var divergencias = data.divergencias;
+
+  var codEmp = bal.codigo || cc.codigo || '';
+  document.getElementById('res-empresa').textContent = (bal.empresa || cc.empresa || '—') + (codEmp ? '  (' + codEmp + ')' : '');
+  document.getElementById('res-cnpj').textContent    = bal.cnpj || '—';
+  document.getElementById('res-data').textContent    = new Date().toLocaleDateString('pt-BR');
+
+  document.getElementById('stat-div').textContent = divergencias.filter(function(d){ return d.tipo === 'diverge'; }).length;
+  document.getElementById('stat-bal').textContent = divergencias.filter(function(d){ return d.tipo === 'only-bal'; }).length;
+  document.getElementById('stat-cc').textContent  = divergencias.filter(function(d){ return d.tipo === 'only-fis'; }).length;
+
+  var wrap = document.getElementById('tableWrap');
+
+  if (divergencias.length === 0) {
+    wrap.innerHTML = '<div class="all-ok"><div class="ok-icon">✅</div><h3>Fechamento OK</h3><p>Nenhuma divergência encontrada entre Balancete e Conta Corrente.</p></div>';
+  } else {
+    var rows = '';
+    for (var i = 0; i < divergencias.length; i++) {
+      var d = divergencias[i];
+      var badge = d.tipo === 'diverge'
+        ? '<span class="badge badge-red">Divergência</span>'
+        : d.tipo === 'only-bal'
+        ? '<span class="badge badge-yellow">Só no Balancete</span>'
+        : '<span class="badge badge-blue">Só na C/C</span>';
+
+      rows += '<tr>'
+        + '<td class="td-code">' + d.codigo + '</td>'
+        + '<td class="td-name">' + d.nome + '</td>'
+        + '<td class="td-value">' + (d.saldoBal !== null ? formatBRL(d.saldoBal) : '—') + '</td>'
+        + '<td class="td-value">' + (d.saldoCC  !== null ? formatBRL(d.saldoCC)  : '—') + '</td>'
+        + '<td class="td-diff">' + formatSigned(d.diff) + '</td>'
+        + '<td>' + badge + '</td>'
+        + '</tr>';
+    }
+
+    wrap.innerHTML = '<table>'
+      + '<thead><tr>'
+      + '<th>Código</th><th>Fornecedor</th>'
+      + '<th class="right">Saldo Balancete</th>'
+      + '<th class="right">Saldo C/C</th>'
+      + '<th class="right">Diferença</th>'
+      + '<th>Status</th>'
+      + '</tr></thead>'
+      + '<tbody>' + rows + '</tbody>'
+      + '</table>';
+  }
+
+  document.getElementById('resultado').style.display = 'block';
+}
+
+// ─── EXPORT PDF ───────────────────────────────────────────────────
+function imprimirRelatorio() {
+  if (!resultData) return;
+  var bal         = resultData.bal;
+  var divergencias = resultData.divergencias;
+  var doc     = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  var empresa = bal.empresa || '—';
+  var cnpj    = bal.cnpj || '—';
+  var hoje    = new Date().toLocaleDateString('pt-BR');
+
+  var codEmp = bal.codigo || cc.codigo || '';
+  var codStr = codEmp ? ' (' + codEmp + ')' : '';
+
+  // Empresa
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+  doc.text(empresa, 14, 16);
+
+  // Meta
+  doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80, 80, 80);
+  doc.text('CNPJ: ' + cnpj + codStr + '   ·   Gerado em: ' + hoje, 14, 22);
+
+  // Linha separadora
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.4);
+  doc.line(14, 26, 196, 26);
+
+  // Resumo inline
+  var divCount = divergencias.filter(function(d){ return d.tipo === 'diverge'; }).length;
+  var balOnly  = divergencias.filter(function(d){ return d.tipo === 'only-bal'; }).length;
+  var ccOnly   = divergencias.filter(function(d){ return d.tipo === 'only-fis'; }).length;
+  doc.setFontSize(8); doc.setTextColor(80, 80, 80);
+  doc.text('Divergências: ' + divCount + '   Só no Balancete: ' + balOnly + '   Só na C/C: ' + ccOnly, 14, 32);
+
+  if (divergencias.length === 0) {
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+    doc.text('Fechamento OK — Nenhuma divergência encontrada.', 14, 46);
+  } else {
+    var totalDiff = divergencias.reduce(function(s, d){ return s + d.diff; }, 0);
+    var rows = divergencias.map(function(d) {
+      return [
+        d.codigo, d.nome,
+        d.saldoBal !== null ? formatBRL(d.saldoBal) : '—',
+        d.saldoCC  !== null ? formatBRL(d.saldoCC)  : '—',
+        formatSigned(d.diff),
+        d.tipo === 'diverge' ? 'Divergência' : d.tipo === 'only-bal' ? 'Só no Balancete' : 'Só na C/C'
+      ];
+    });
+
+    doc.autoTable({
+      startY: 38,
+      head: [['Código', 'Fornecedor', 'Saldo Balancete', 'Saldo C/C', 'Diferença', 'Status']],
+      body: rows,
+      styles: { font: 'helvetica', fontSize: 8, textColor: [0,0,0], fillColor: [255,255,255], lineColor: [220,220,220], lineWidth: 0.1 },
+      headStyles: { fillColor: [255,255,255], textColor: [100,100,100], fontStyle: 'bold', fontSize: 7, lineColor: [0,0,0], lineWidth: 0.4 },
+      columnStyles: {
+        0: { cellWidth: 18 },
+        2: { halign: 'right', cellWidth: 32 },
+        3: { halign: 'right', cellWidth: 32 },
+        4: { halign: 'right', cellWidth: 32, fontStyle: 'bold' },
+        5: { cellWidth: 26 }
+      },
+      alternateRowStyles: { fillColor: [249,249,249] }
+    });
+
+    var finalY = doc.lastAutoTable.finalY + 4;
+    doc.setDrawColor(180, 180, 180);
+    doc.setLineWidth(0.2);
+    doc.line(14, finalY, 196, finalY);
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Total das diferenças', 14, finalY + 5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.text(formatSigned(totalDiff), 196, finalY + 5, { align: 'right' });
+  }
+
+  var blob = doc.output('blob');
+  var url  = URL.createObjectURL(blob);
+  var win  = window.open(url);
+  win.onload = function() { win.print(); };
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────
+function parseBRL(str) {
+  if (!str) return 0;
+  return parseFloat(str.replace(/\./g,'').replace(',','.')) || 0;
+}
+
+function formatSigned(val) {
+  return (val < 0 ? '- ' : '') + formatBRL(Math.abs(val));
+}
+
+function formatBRL(val) {
+  return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function showAlert(id, msg) {
+  var el = document.getElementById(id);
+  el.querySelector('.toast-msg').textContent = msg;
+  el.classList.add('visible');
+}
+
+function hideAlerts() {
+  var toasts = document.querySelectorAll('.toast');
+  for (var i = 0; i < toasts.length; i++) {
+    toasts[i].classList.remove('visible');
+  }
+}
+</script>
+</body>
+</html>
