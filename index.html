@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>prosoftMais · Ferramentas</title>
-<link rel="icon" type="image/svg+xml" href="prosoftmais.svg">
+<title>Prosoft+</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -18,12 +18,12 @@ body{background:var(--bg);font-family:var(--font);color:var(--text);font-size:14
 
 .page{max-width:860px;margin:0 auto;padding:40px 24px 80px;}
 
-.brand{margin-bottom:40px;}
-.brand-logo{display:block;width:240px;height:60px;}
+.brand{position:absolute;top:24px;left:24px;z-index:10;}
+.brand-logo{display:block;width:200px;height:50px;}
 
 .section-label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:16px;}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;}
+.grid{display:flex;flex-direction:column;gap:16px;}
 
 .tool-card{
   background:var(--surface);
@@ -108,18 +108,18 @@ body{background:var(--bg);font-family:var(--font);color:var(--text);font-size:14
   header{padding:12px 16px;}
   .page{padding:24px 16px 60px;}
   .hero-title{font-size:20px;}
+  .brand{position:static;margin-bottom:24px;}
+  .brand-logo{width:180px;height:45px;}
 }
 </style>
 </head>
 <body>
 
+<div class="brand">
+  <object class="brand-logo" type="image/svg+xml" data="prosoftmais.svg" aria-label="prosoftMais"></object>
+</div>
+
 <div class="page">
-  <div class="brand">
-    <object class="brand-logo" type="image/svg+xml" data="prosoftmais.svg" aria-label="prosoftMais"></object>
-  </div>
-
-  <div class="section-label" style="margin-bottom:24px;">Selecione uma solução</div>
-
   <div id="content">
     <div class="loading">
       <div class="spinner"></div>

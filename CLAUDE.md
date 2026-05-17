@@ -31,7 +31,9 @@ font: 'Sora' (UI) / 'JetBrains Mono' (codes, timestamps, file paths)
 radius: 6px  transition: 140ms ease
 ```
 
-When changing visual style, update **every** tool — there is no single source of truth. The same applies to shared UI patterns (upload `.ucard` with drag/drop, `.toast` notifications, dashed-border drop zones turning solid navy on `loaded`). The animated brand SVG (`prosoftmais.svg`) uses `#1E3A5F` (--accent) and `#15293F` (--accent-h) — keep these in sync if the palette changes.
+When changing visual style, update **every** tool — there is no single source of truth. The same applies to shared UI patterns (upload `.ucard` with drag/drop, `.toast` notifications, dashed-border drop zones turning solid navy on `loaded`).
+
+The animated brand SVG (`prosoftmais.svg`, used as the `index.html` header) is **maintained by the user externally** (generated in another tool). Use its color tokens (`#1E3A5F` / `#15293F`) when keeping the palette in sync, but do not modify the SVG's internal `<title>`, `aria-label`, animation keyframes, or path data without an explicit ask — the page-level `<object aria-label="prosoftMais">` handles accessibility.
 
 ### CFOP dictionary sync (`conferir livro.html` ↔ `CFOP.xlsx`)
 
