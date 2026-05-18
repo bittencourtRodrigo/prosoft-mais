@@ -12,5 +12,12 @@
     "desc": "Fechamento de contas por fornecedor",
     "icone": "🚛",
     "categoria": ""
+  },
+  {
+    "file": "fechar fornecedor por nome.html",
+    "titulo": "Fechar Fornecedor (por nome)",
+    "desc": "Compara saldos de fornecedores entre Balancete e relatório de Contas a Pagar",
+    "icone": "🚚",
+    "categoria": ""
   }
 ]

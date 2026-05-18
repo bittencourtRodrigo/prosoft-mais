@@ -20,5 +20,6 @@ Gemfile.lock
 # local test fixtures (real client data — não publicar)
 relatórios/
 
-# Claude Code session-local files
-.claude/
+# Claude Code: settings.json é versionado (define o hook de testes);
+# settings.local.json é por máquina (permissões locais).
+.claude/settings.local.json

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Testes · prosoftMais</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #F7F8FA;
+  --surface:  #FFFFFF;
+  --border:   #D8DEE7;
+  --muted:    #8A99AE;
+  --text:     #1A2436;
+  --sub:      #5C7191;
+  --accent:   #1E3A5F;
+  --ok:       #2E7D32;
+  --danger:   #C0392B;
+  --font:     'Sora', sans-serif;
+  --mono:     'JetBrains Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; padding: 32px 24px 96px; }
+main { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+.sub { font-size: 12px; color: var(--sub); margin-bottom: 24px; font-family: var(--mono); }
+
+.summary {
+  display: flex; gap: 24px; align-items: baseline;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.summary .big { font-size: 22px; font-weight: 600; font-family: var(--mono); letter-spacing: -.02em; }
+.summary .label { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-family: var(--mono); }
+.summary .ok { color: var(--ok); }
+.summary .fail { color: var(--danger); }
+
+.suite {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.suite-h {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.suite-h .meta { font-family: var(--mono); font-size: 11px; color: var(--muted); font-weight: 400; }
+.test {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+}
+.test:last-child { border-bottom: none; }
+.test .dot { flex-shrink: 0; width: 14px; height: 14px; border-radius: 50%; margin-top: 3px; }
+.test.pass .dot { background: var(--ok); }
+.test.fail .dot { background: var(--danger); }
+.test .name { flex: 1; }
+.test .err {
+  display: block;
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: #FDF3F2;
+  border-left: 2px solid var(--danger);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--danger);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+button.run {
+  background: var(--accent); color: #fff; border: none;
+  font-family: var(--font); font-size: 12px; font-weight: 500;
+  padding: 7px 14px; border-radius: 6px; cursor: pointer;
+}
+button.run:hover { background: #15293F; }
+</style>
+</head>
+<body>
+
+<main>
+  <h1>Testes · prosoftMais</h1>
+  <div class="sub">Abre o relatório com tudo verde antes de mexer em parsers. Vermelho = regressão.</div>
+
+  <div class="summary" id="summary">
+    <div>
+      <div class="label">Suítes</div>
+      <div class="big" id="sum-suites">—</div>
+    </div>
+    <div>
+      <div class="label">Testes</div>
+      <div class="big" id="sum-total">—</div>
+    </div>
+    <div>
+      <div class="label">Passaram</div>
+      <div class="big ok" id="sum-pass">—</div>
+    </div>
+    <div>
+      <div class="label">Falharam</div>
+      <div class="big fail" id="sum-fail">—</div>
+    </div>
+    <div style="margin-left:auto">
+      <button class="run" id="btnRun">Rodar de novo</button>
+    </div>
+  </div>
+
+  <div id="results"></div>
+</main>
+
+<script src="runner.js"></script>
+<script src="suites/fechar-fornecedor-por-nome.test.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('btnRun').addEventListener('click', function() { location.reload(); });
+  TestRunner.run().then(render).catch(function(e) {
+    document.getElementById('results').innerHTML =
+      '<div class="suite"><div class="suite-h">Erro fatal no runner</div><div class="test fail"><span class="dot"></span><div class="name">' +
+      String(e && e.message || e) + '<span class="err">' + String(e && e.stack || '') + '</span></div></div></div>';
+  });
+});
+
+function render(report) {
+  document.getElementById('sum-suites').textContent = report.suites.length;
+  document.getElementById('sum-total').textContent  = report.total;
+  document.getElementById('sum-pass').textContent   = report.passed;
+  document.getElementById('sum-fail').textContent   = report.failed;
+
+  var html = '';
+  for (var i = 0; i < report.suites.length; i++) {
+    var s = report.suites[i];
+    html += '<div class="suite">';
+    html += '<div class="suite-h"><span>' + esc(s.name) + '</span><span class="meta">' + s.passed + ' / ' + s.tests.length + '</span></div>';
+    for (var j = 0; j < s.tests.length; j++) {
+      var t = s.tests[j];
+      html += '<div class="test ' + (t.passed ? 'pass' : 'fail') + '">';
+      html += '<span class="dot"></span><div class="name">' + esc(t.name);
+      if (!t.passed) html += '<span class="err">' + esc(t.error || '') + '</span>';
+      html += '</div></div>';
+    }
+    html += '</div>';
+  }
+  document.getElementById('results').innerHTML = html;
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+    return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c];
+  });
+}
+</script>
+</body>
+</html>

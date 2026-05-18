@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CLAUDE_HOOK=1 node tests/run.js",
+            "shell": "bash",
+            "timeout": 30,
+            "statusMessage": "Rodando tests de regressão…"
+          }
+        ]
+      }
+    ]
+  }
+}
